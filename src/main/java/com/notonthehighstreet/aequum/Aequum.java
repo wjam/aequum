@@ -28,11 +28,11 @@ package com.notonthehighstreet.aequum;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * <p>
@@ -96,13 +96,11 @@ public class Aequum {
      */
     public static class Builder<T> {
         private final Class<T> expectedType;
-        private final List<Function<T, ?>> fields;
-        private final Map<Function<T, ?>, Comparator> comparators;
+        private final List<ComparableFieldValue<T>> fields;
 
         private Builder(final Class<T> expectedType) {
             this.expectedType = expectedType;
             this.fields = new ArrayList<>();
-            this.comparators = new HashMap<>();
         }
 
         /**
@@ -112,8 +110,20 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals} &amp; {@linkplain Object#hashCode() hashCode} but not support
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public IncomparableBuilder<T> withField(final Function<T, Object> field) {
-            return new IncomparableBuilder<>(expectedType, fields).withField(field);
+        public IncomparableBuilder<T> withField(final SerializableFunction<T, Object> field) {
+            return withField(field, field);
+        }
+
+        /**
+         * Add an incomparable field for use in the {@linkplain Object#equals(Object) equals} and {@linkplain Object#hashCode() hashCode} methods. Note that
+         * {@linkplain Comparable#compareTo(Object) compareTo} will not be supported.
+         * @param field Field or getter for a field.
+         * @param toStringValue String representation of the field.
+         * @return A builder which will support {@linkplain Object#equals(Object) equals} &amp; {@linkplain Object#hashCode() hashCode} but not support
+         * {@linkplain Comparable#compareTo(Object) compareTo}.
+         */
+        public IncomparableBuilder<T> withField(final SerializableFunction<T, Object> field, final Function<T, ?> toStringValue) {
+            return new IncomparableBuilder<>(expectedType, fields).withField(field, toStringValue);
         }
 
         /**
@@ -124,7 +134,7 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public <V extends Comparable<V>> Builder<T> withComparableField(final Function<T, V> field) {
+        public <V extends Comparable<V>> Builder<T> withComparableField(final SerializableFunction<T, V> field) {
             return withComparableField(field, Comparator.nullsFirst(Comparator.<V>naturalOrder()));
         }
 
@@ -136,7 +146,7 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public <V extends Comparable<V>> Builder<T> withOptionalComparableField(final Function<T, Optional<V>> field) {
+        public <V extends Comparable<V>> Builder<T> withOptionalComparableField(final SerializableFunction<T, Optional<V>> field) {
             return withOptionalComparableField(field, Comparator.<V>naturalOrder());
         }
 
@@ -149,9 +159,22 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public <V> Builder<T> withComparableField(final Function<T, V> field, final Comparator<V> comparator) {
-            fields.add(field);
-            comparators.put(field, comparator);
+        public <V> Builder<T> withComparableField(final SerializableFunction<T, V> field, final Comparator<V> comparator) {
+            return withComparableField(field, comparator, field);
+        }
+
+        /**
+         * Add a incomparable field for use in the {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
+         * {@linkplain Comparable#compareTo(Object) compareTo} methods but with a {@linkplain Comparator} to compare the field with.
+         * @param field Field or getter for a field.
+         * @param comparator {@linkplain Comparator} used to compare the field.
+         * @param toStringValue String representation of the field.
+         * @param <V> Type of the field which extends {@linkplain Comparable}
+         * @return A builder which will support {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
+         * {@linkplain Comparable#compareTo(Object) compareTo}.
+         */
+        public <V> Builder<T> withComparableField(final SerializableFunction<T, V> field, final Comparator<V> comparator, final Function<T, ?> toStringValue) {
+            fields.add(new ComparableFieldValue<>(field, comparator, toStringValue));
             return this;
         }
 
@@ -165,7 +188,7 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public <V> Builder<T> withOptionalComparableField(final Function<T, Optional<V>> field, final Comparator<V> comparator) {
+        public <V> Builder<T> withOptionalComparableField(final SerializableFunction<T, Optional<V>> field, final Comparator<V> comparator) {
             return withComparableField(field, new OptionalComparator<>(comparator));
         }
 
@@ -175,7 +198,7 @@ public class Aequum {
          * @return A newly constructed {@linkplain ComparableEqualsHashCode}.
          */
         public ComparableEqualsHashCode<T> build() {
-            return new ComparableEqualsHashCode<>(fields, comparators, expectedType);
+            return new ComparableEqualsHashCode<>(fields, expectedType);
         }
     }
 
@@ -185,11 +208,11 @@ public class Aequum {
      */
     public static class IncomparableBuilder<T> {
         private final Class<T> expectedType;
-        private final List<Function<T, ?>> fields;
+        private final List<FieldValue<T>> fields;
 
-        private IncomparableBuilder(final Class<T> expectedType, final List<Function<T, ?>> fields) {
+        private IncomparableBuilder(final Class<T> expectedType, final List<ComparableFieldValue<T>> fields) {
             this.expectedType = expectedType;
-            this.fields = fields;
+            this.fields = fields.stream().collect(toList());
         }
 
         /**
@@ -198,8 +221,19 @@ public class Aequum {
          * @return A builder which will support {@linkplain Object#equals(Object) equals} &amp; {@linkplain Object#hashCode() hashCode} but not support
          * {@linkplain Comparable#compareTo(Object) compareTo}.
          */
-        public IncomparableBuilder<T> withField(final Function<T, ?> field) {
-            fields.add(field);
+        public IncomparableBuilder<T> withField(final SerializableFunction<T, ?> field) {
+            return withField(field, field);
+        }
+
+        /**
+         * Add a field for use in the {@linkplain Object#equals(Object) equals} and {@linkplain Object#hashCode() hashCode} methods.
+         * @param field Field or getter for a field.
+         * @param toStringValue String representation of the field.
+         * @return A builder which will support {@linkplain Object#equals(Object) equals} &amp; {@linkplain Object#hashCode() hashCode} but not support
+         * {@linkplain Comparable#compareTo(Object) compareTo}.
+         */
+        public IncomparableBuilder<T> withField(final SerializableFunction<T, ?> field, final Function<T, ?> toStringValue) {
+            fields.add(new FieldValue<>(field, toStringValue));
             return this;
         }
 

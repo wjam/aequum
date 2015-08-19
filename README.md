@@ -2,7 +2,7 @@
 
 ###Responsibilities###
 The Aequum library is designed to help remove some of the boiler plate when
-writing the `equals`, `hashCode` and `compareTo` methods on POJO classes through the
+writing the `toString`, `equals`, `hashCode` and `compareTo` methods on POJO classes through the
 use of [Java 8 lambdas](http://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html).
 
 Note that this library depends on Java 8.
@@ -66,6 +66,11 @@ public Example implements Comparable<Example> {
   @Override
   public int compareTo(final Example o) {
     return EQUALS_HASH_CODE.compare(this, o);
+  }
+  
+  @Override
+  public String toString() {
+    return EQUALS_HASH_CODE.toString(this);
   }
 }
 ````

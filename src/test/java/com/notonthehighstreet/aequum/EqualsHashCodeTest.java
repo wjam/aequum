@@ -37,7 +37,7 @@ public class EqualsHashCodeTest {
 
     @Before
     public void setUp() throws Exception {
-        subject = Aequum.builder(Dummy.class).withField(o -> o.one).withField(o -> o.two).withField(o -> o.three).build();
+        subject = Aequum.builder(Dummy.class).withField(Dummy::getOne).withField(o -> o.two).withField(Dummy::getThree).build();
     }
 
     @Test
@@ -72,6 +72,16 @@ public class EqualsHashCodeTest {
         assertEquals(subject.toHashCode(dummy), subject.toHashCode(dummy));
     }
 
+    @Test
+    public void toStringShouldHaveFieldsInPredictableOrder() {
+        assertEquals("Dummy{one=one, three=[three], two=two}", subject.toString(dummy("one", "two", "three")));
+    }
+
+    @Test
+    public void toStringShouldNotIncludeConfiguredFields() {
+        assertEquals("Dummy{one=*****}", Aequum.builder(Dummy.class).withField(Dummy::getOne, o -> "*****").build().toString(dummy("hidden value", null)));
+    }
+
     private Dummy dummy(final String one, final String two, final String... three) {
         final Dummy dummy = new Dummy();
         dummy.one = one;
@@ -84,5 +94,13 @@ public class EqualsHashCodeTest {
         private String one;
         private String two;
         private String[] three;
+
+        public String getOne() {
+            return one;
+        }
+
+        public String[] getThree() {
+            return three;
+        }
     }
 }

@@ -31,6 +31,8 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.function.Function;
 
+import static java.util.stream.Collectors.toMap;
+
 /**
  * <p>
  *     Utility class that allows {@linkplain Object#equals(Object) equals}, {@linkplain Object#hashCode() hashCode} and {@linkplain Comparable#compareTo(Object)} methods to be
@@ -66,11 +68,12 @@ import java.util.function.Function;
  */
 public class ComparableEqualsHashCode<T> extends EqualsHashCode<T> {
 
-    private final Map<Function<T, ?>, Comparator> comparators;
+    private final Map<SerializableFunction<T, ?>, Comparator> comparators;
 
-    ComparableEqualsHashCode(final Collection<Function<T, ?>> fields, final Map<Function<T, ?>, Comparator> comparators, final Class<T> expectedType) {
+    ComparableEqualsHashCode(final Collection<ComparableFieldValue<T>> fields, final Class<T> expectedType) {
         super(fields, expectedType);
-        this.comparators = comparators;
+
+        this.comparators = fields.stream().collect(toMap(FieldValue::getField, ComparableFieldValue::getComparator));
     }
 
     /**

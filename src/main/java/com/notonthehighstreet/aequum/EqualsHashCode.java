@@ -26,11 +26,22 @@ package com.notonthehighstreet.aequum;
  * #L%
  */
 
+import org.objectweb.asm.ClassReader;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * <p>
@@ -61,16 +72,52 @@ import java.util.stream.Stream;
  */
 public class EqualsHashCode<T> {
 
-    private final Collection<Function<T, ?>> fields;
+    private final SortedMap<String, Function<T, ?>> fieldNames;
+    private final SerializableFunction<T, ?>[] fields;
     private final Class<T> expectedType;
 
-    EqualsHashCode(final Collection<Function<T, ?>> fields, final Class<T> expectedType) {
-        this.fields = fields;
+    @SuppressWarnings("unchecked")
+    EqualsHashCode(final Collection<? extends FieldValue<T>> fields, final Class<T> expectedType) {
+        this.fields = fields.stream().map(FieldValue::getField).toArray(SerializableFunction[]::new);
         this.expectedType = expectedType;
+
+        fieldNames = fields.stream().collect(collectingAndThen(toMap(this::getAppropriateFieldName, FieldValue::getToStringValue), TreeMap::new));
     }
 
-    Stream<Function<T, ?>> fields() {
-        return fields.stream();
+    private String getAppropriateFieldName(final FieldValue<T> f) {
+        final MethodDetails method = f.getField().method();
+
+        // Try the standard getter naming
+        if (method.getMethodName().startsWith("get")) {
+            return method.getMethodName().substring(3, 4).toLowerCase() + method.getMethodName().substring(4);
+        }
+
+        if (method.getMethodName().startsWith("is")) {
+            return method.getMethodName().substring(2, 3).toLowerCase() + method.getMethodName().substring(3);
+        }
+
+        // Was it a lambda?
+        if (method.getMethodName().contains("$")) {
+            return getFieldNameFromLambdaMethod(method);
+        }
+
+        // Err...
+        return method.getMethodName();
+    }
+
+    private String getFieldNameFromLambdaMethod(final MethodDetails method) {
+        final FieldIdentifyingClassVisitor visitor = new FieldIdentifyingClassVisitor(method.getMethodName(), method.getMethodSignature());
+        try {
+            new ClassReader(method.getContainingClass()).accept(visitor, 0);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        return visitor.getFieldName().get();
+    }
+
+    Stream<SerializableFunction<T, ?>> fields() {
+        return Arrays.stream(fields);
     }
 
     /**
@@ -78,6 +125,7 @@ public class EqualsHashCode<T> {
      * @param thisObject <code>this</code> object.
      * @param thatObject Object to compare it to.
      * @return True if they are equal, false otherwise.
+     * @see Object#equals(Object)
      */
     public boolean isEqual(final T thisObject, final Object thatObject) {
         if (thisObject == thatObject) {
@@ -96,9 +144,26 @@ public class EqualsHashCode<T> {
      * Calculate the hash code for the given object.
      * @param thisObject <code>this</code> object.
      * @return The hash code value.
+     * @see Object#hashCode()
      */
     public int toHashCode(final T thisObject) {
         final Stream<Object> map = fields().map(f -> f.apply(thisObject));
         return Arrays.deepHashCode(map.toArray(Object[]::new));
+    }
+
+    /**
+     * Produce a {@code toString} value for the given object.
+     * @param thisObject {@code this} object.
+     * @return The string representation.
+     * @see Object#toString()
+     */
+    public String toString(final T thisObject) {
+        return fieldNames.entrySet().stream()
+                .map(e -> e.getKey() + "=" + arraySafeToString(e.getValue().apply(thisObject)))
+                .collect(joining(", ", thisObject.getClass().getSimpleName() + "{", "}"));
+    }
+
+    private String arraySafeToString(final Object o) {
+        return o instanceof Object[] ? Arrays.toString((Object[]) o) : Objects.toString(o);
     }
 }
