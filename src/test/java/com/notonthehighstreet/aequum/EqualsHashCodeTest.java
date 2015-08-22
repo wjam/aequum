@@ -29,6 +29,8 @@ package com.notonthehighstreet.aequum;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Random;
+
 import static org.junit.Assert.*;
 
 public class EqualsHashCodeTest {
@@ -37,7 +39,7 @@ public class EqualsHashCodeTest {
 
     @Before
     public void setUp() throws Exception {
-        subject = Aequum.builder(Dummy.class).withField(Dummy::getOne).withField(o -> o.two).withField(Dummy::getThree).build();
+        subject = Aequum.builder(Dummy.class).withField(Dummy::getOne).withField(o -> o.two).withField(Dummy::getThree).withToStringField(o -> o.four).build();
     }
 
     @Test
@@ -74,7 +76,10 @@ public class EqualsHashCodeTest {
 
     @Test
     public void toStringShouldHaveFieldsInPredictableOrder() {
-        assertEquals("Dummy{one=one, three=[three], two=two}", subject.toString(dummy("one", "two", "three")));
+        final Dummy dummy = dummy("one", "two", "three");
+        final int four = new Random().nextInt();
+        dummy.four = four;
+        assertEquals("Dummy{four=" + four +", one=one, three=[three], two=two}", subject.toString(dummy));
     }
 
     @Test
@@ -94,6 +99,7 @@ public class EqualsHashCodeTest {
         private String one;
         private String two;
         private String[] three;
+        private int four;
 
         public String getOne() {
             return one;

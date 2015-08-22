@@ -73,7 +73,9 @@ public class ComparableEqualsHashCode<T> extends EqualsHashCode<T> {
     ComparableEqualsHashCode(final Collection<ComparableFieldValue<T>> fields, final Class<T> expectedType) {
         super(fields, expectedType);
 
-        this.comparators = fields.stream().collect(toMap(FieldValue::getField, ComparableFieldValue::getComparator));
+        this.comparators = fields.stream()
+                .filter(FieldValue::isIncludedInEquality)
+                .collect(toMap(FieldValue::getField, ComparableFieldValue::getComparator));
     }
 
     /**

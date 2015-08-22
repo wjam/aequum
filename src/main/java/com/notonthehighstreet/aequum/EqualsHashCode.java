@@ -40,7 +40,6 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -78,7 +77,7 @@ public class EqualsHashCode<T> {
 
     @SuppressWarnings("unchecked")
     EqualsHashCode(final Collection<? extends FieldValue<T>> fields, final Class<T> expectedType) {
-        this.fields = fields.stream().map(FieldValue::getField).toArray(SerializableFunction[]::new);
+        this.fields = fields.stream().filter(FieldValue::isIncludedInEquality).map(FieldValue::getField).toArray(SerializableFunction[]::new);
         this.expectedType = expectedType;
 
         fieldNames = fields.stream().collect(collectingAndThen(toMap(this::getAppropriateFieldName, FieldValue::getToStringValue), TreeMap::new));

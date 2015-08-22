@@ -14,7 +14,7 @@ class FieldIdentifyingClassVisitor extends ClassVisitor {
     private final String name;
     private final String signature;
 
-    private Optional<String> fieldName;
+    private Optional<String> fieldName = Optional.empty();
 
     public FieldIdentifyingClassVisitor(final String name, final String signature) {
         super(Opcodes.ASM5);
@@ -24,22 +24,12 @@ class FieldIdentifyingClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-        if (Objects.equals(name, this.name) && Objects.equals(desc, this.signature)) {
+        if (Objects.equals(name, this.name) && Objects.equals(desc, this.signature) && ((access & Opcodes.ACC_SYNTHETIC) == Opcodes.ACC_SYNTHETIC)) {
             return new MethodVisitor(Opcodes.ASM5) {
                 @Override
                 public void visitFieldInsn(final int opcode, final String owner, final String name, final String desc) {
                     super.visitFieldInsn(opcode, owner, name, desc);
                     fieldName = Optional.of(name);
-                }
-
-                @Override
-                public void visitCode() {
-                    super.visitCode();
-                }
-
-                @Override
-                public void visitEnd() {
-                    super.visitEnd();
                 }
 
                 @Override
@@ -54,7 +44,10 @@ class FieldIdentifyingClassVisitor extends ClassVisitor {
                         throw new UncheckedIOException(e);
                     }
 
-                    fieldName = subVisitor.fieldName;
+                    if (subVisitor.fieldName.isPresent()) {
+                        fieldName = subVisitor.fieldName;
+                    }
+
                 }
 
             };
