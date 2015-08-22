@@ -1,5 +1,7 @@
 ##Aequum Library##
 
+[![Build Status](https://travis-ci.org/wjam/aequum.svg?branch=master)](https://travis-ci.org/wjam/aequum)
+
 ###Responsibilities###
 The Aequum library is designed to help remove some of the boiler plate when
 writing the `toString`, `equals`, `hashCode` and `compareTo` methods on POJO classes through the
