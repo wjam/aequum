@@ -178,6 +178,27 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>shade-asm-dependency</id>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.objectweb.asm</pattern>
+                                    <shadedPattern>com.notonthehighstreet.aequum.asm</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <createSourcesJar>true</createSourcesJar>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
@@ -246,14 +267,18 @@
                         <goals>deploy</goals>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>2.4.1</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
 
     <scm>
-        <connection>scm:git:git@github.com:notonthehighstreet/aequum.git</connection>
-        <developerConnection>scm:git:git@github.com:notonthehighstreet/aequum.git</developerConnection>
-        <url>https://github.com/notonthehighstreet/aequum</url>
+        <connection>scm:git:git@github.com:wjam/aequum.git</connection>
+        <developerConnection>scm:git:git@github.com:wjam/aequum.git</developerConnection>
+        <url>https://github.com/wjam/aequum</url>
         <tag>HEAD</tag>
     </scm>
 

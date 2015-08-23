@@ -1,4 +1,4 @@
-##Aequum Library##
+##Aequum##
 
 [![Build Status](https://travis-ci.org/wjam/aequum.svg?branch=master)](https://travis-ci.org/wjam/aequum)
 
