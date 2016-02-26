@@ -75,6 +75,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <fork>true</fork>
                 </configuration>
             </plugin>
             <plugin>
@@ -142,8 +143,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>animal-sniffer-maven-plugin</artifactId>
                 <executions>
-                    <!--TODO: Enable this check once there is a Java 8 signature released-->
-                    <!--<execution>
+                    <execution>
                         <id>only-allow-java-8</id>
                         <phase>test</phase>
                         <goals>
@@ -156,7 +156,7 @@
                                 <version>1.0</version>
                             </signature>
                         </configuration>
-                    </execution>-->
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -210,7 +210,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>animal-sniffer-maven-plugin</artifactId>
-                    <version>1.11</version>
+                    <version>1.14</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-compiler-plugin</artifactId>
